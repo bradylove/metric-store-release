@@ -42,7 +42,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890 // indirect
 	golang.org/x/sys v0.0.0-20190415145633-3fd5a3612ccd
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
-	golang.org/x/tools v0.0.0-20190308142131-b40df0fb21c3 // indirect
+	golang.org/x/tools v0.0.0-20190415205951-2e9de471ebd3 // indirect
 	google.golang.org/genproto v0.0.0-20190415143225-d1146b9035b9
 	google.golang.org/grpc v1.19.0
 	gopkg.in/yaml.v2 v2.2.2 // indirect
