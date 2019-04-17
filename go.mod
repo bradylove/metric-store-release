@@ -48,3 +48,5 @@ require (
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	honnef.co/go/tools v0.0.0-20190215041234-466a0476246c // indirect
 )
+
+// replace github.com/prometheus/prometheus latest => github.com/prometheus/prometheus/v2 v2.9.0
