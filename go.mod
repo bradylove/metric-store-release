@@ -25,7 +25,9 @@ require (
 	github.com/influxdata/usage-client v0.0.0-20160829180054-6d3895376368 // indirect
 	github.com/jsternberg/zap-logfmt v1.2.0 // indirect
 	github.com/jwilder/encoding v0.0.0-20170811194829-b4e1701a28ef // indirect
+	github.com/kisielk/gotool v1.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.6 // indirect
+	github.com/mdempsky/unconvert v0.0.0-20190325185700-2f5dc3378ed3 // indirect
 	github.com/mschoch/smat v0.0.0-20160514031455-90eadee771ae // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/onsi/ginkgo v1.8.0
@@ -39,6 +41,7 @@ require (
 	github.com/prometheus/tsdb v0.2.0 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190222223459-a17d461953aa // indirect
 	github.com/spf13/cast v1.2.0 // indirect
+	github.com/square/certstrap v1.1.1 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/willf/bitset v1.1.9 // indirect
@@ -47,7 +50,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890 // indirect
 	golang.org/x/sys v0.0.0-20190428183149-804c0c7841b5
 	golang.org/x/time v0.0.0-20181108054448-85acf8d2951c // indirect
-	golang.org/x/tools v0.0.0-20190308142131-b40df0fb21c3 // indirect
+	golang.org/x/tools v0.0.0-20190508150211-cf84161cff3f // indirect
 	google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb
 	google.golang.org/grpc v1.19.0
 	gopkg.in/yaml.v2 v2.2.2 // indirect

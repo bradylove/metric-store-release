@@ -67,6 +67,43 @@ func TestClientPromQLRange(t *testing.T) {
 	}
 }
 
+func TestClient_PromQLSeries(t *testing.T) {
+	t.Parallel()
+	metricStore := newStubMetricStore()
+	client := metricstore_client.NewClient(metricStore.addr())
+	hourAgo := time.Now().Truncate(time.Hour)
+
+	result, err := client.PromQLSeries(
+		context.Background(),
+		metricstore_client.WithPromQLStart(hourAgo),
+		metricstore_client.WithPromQLEnd(hourAgo.Add(time.Minute)),
+		metricstore_client.WithPromQLMatch("process_start_time_seconds{job=\"prometheus\"}"),
+		metricstore_client.WithPromQLMatch("process_start_time_seconds{job=\"zeus\"}"),
+		)
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	series := result.GetSeries()
+
+	if len(series) != 1 {
+		t.Fatalf("expected to receive 1 series, got %d", len(series))
+	}
+
+	if len(metricStore.reqs) != 1 {
+		t.Fatalf("expected have 1 request, have %d", len(metricStore.reqs))
+	}
+
+	if metricStore.reqs[0].URL.Path != "/api/v1/series" {
+		t.Fatalf("expected Path '/api/v1/series' but got '%s'", metricStore.reqs[0].URL.Path)
+	}
+
+	assertQueryParam(t, metricStore.reqs[0].URL, "start", test.FormatTimeWithDecimalMillis(hourAgo))
+	assertQueryParam(t, metricStore.reqs[0].URL, "end", test.FormatTimeWithDecimalMillis(hourAgo.Add(time.Minute)))
+	assertQueryParam(t, metricStore.reqs[0].URL, "match[]", "process_start_time_seconds{job=\"zeus\"}", "process_start_time_seconds{job=\"prometheus\"}")
+}
+
 func TestClientPromQL(t *testing.T) {
 	t.Parallel()
 	metricStore := newStubMetricStore()
@@ -310,6 +347,18 @@ func newStubMetricStore() *stubMetricStore {
 					  }
 					]
 				  }
+				}
+			`),
+			"GET/api/v1/series": []byte(`
+				{
+				  "status": "success",
+				  "data": [
+					{
+						"__name__" : "up",
+        				"job" : "prometheus",
+         				"instance" : "localhost:9090"
+					}
+				  ]
 				}
 			`),
 		},

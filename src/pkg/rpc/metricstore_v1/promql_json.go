@@ -23,10 +23,6 @@ func (sqr *PromQL_SeriesQueryResult) IsNil() bool {
 	return sqr == nil
 }
 
-func (sqr *PromQL_SeriesQueryResult) NKeys() int {
-	return 2
-}
-
 func (sqr *PromQL_SeriesQueryResult) MarshalJSONArray(enc *gojay.Encoder) {
 	for _, series := range sqr.Series {
 		enc.Object(series)
@@ -142,6 +138,51 @@ func (ir *PromQL_InstantQueryResult) UnmarshalJSONObject(dec *gojay.Decoder, key
 
 func (ir *PromQL_InstantQueryResult) NKeys() int {
 	return 2
+}
+
+func (ir *PromQL_SeriesQueryResult) UnmarshalJSONPB(m *jsonpb.Unmarshaler, val []byte) error {
+	return gojay.UnmarshalJSONObject(val, ir)
+}
+
+func (ir *PromQL_SeriesQueryResult) UnmarshalJSONObject(dec *gojay.Decoder, key string) error {
+	switch key {
+	case "status":
+		return nil
+	case "data":
+		return dec.Array(ir)
+	}
+
+	return nil
+}
+
+func (ir *PromQL_SeriesQueryResult) UnmarshalJSONArray(dec *gojay.Decoder) error {
+	series_info := &PromQL_SeriesInfo{}
+	series_info.Info = map [string]string{}
+	if err := dec.Object(series_info); err != nil {
+		return err
+	}
+
+	ir.Series = append(ir.Series, series_info)
+
+	return nil
+}
+
+func (ir *PromQL_SeriesQueryResult) NKeys() int {
+	return 2
+}
+
+func (ir *PromQL_SeriesInfo) UnmarshalJSONObject(dec *gojay.Decoder, key string) error {
+
+	value := ""
+	error := dec.String(&value)
+	ir.Info[key] = value
+	return error
+
+	return nil
+}
+
+func (ir *PromQL_SeriesInfo) NKeys() int {
+	return 0
 }
 
 type resultType string

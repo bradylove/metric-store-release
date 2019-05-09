@@ -784,6 +784,45 @@ var _ = Describe("PromQL JSON", func() {
 			}`), &result)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("handles a series query result", func() {
+			marshaler := &runtime.JSONPb{OrigName: true, EmitDefaults: true}
+
+			var result rpc.PromQL_SeriesQueryResult
+			err := marshaler.Unmarshal([]byte(`{
+				  "status": "success",
+				  "data": [
+					{
+						"__name__" : "up",
+        				"job" : "prometheus",
+         				"instance" : "localhost:9090"
+					},
+				    {
+				  	    "__name__" : "process_start_time_seconds",
+				  	    "food" : "potatoes"
+				    }
+				  ]
+				}`), &result)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result).To(Equal(rpc.PromQL_SeriesQueryResult{
+				Series: []*rpc.PromQL_SeriesInfo{
+					{
+						Info: map[string]string{
+							"__name__" : "up",
+							"job" : "prometheus",
+							"instance" : "localhost:9090",
+						},
+					},
+					{
+						Info: map[string]string{
+							"__name__" : "process_start_time_seconds",
+							"food" : "potatoes",
+						},
+					},
+				},
+			}))
+		})
 	})
 })
 

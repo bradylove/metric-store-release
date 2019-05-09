@@ -3,6 +3,7 @@ package acceptance
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 
 	ms "github.com/cloudfoundry/metric-store-release/src/pkg/client"
@@ -20,6 +21,7 @@ var _ = Describe("Metric Store on a CF", func() {
 	Context("using gRPC client", func() {
 		BeforeEach(func() {
 			cfg = Config()
+			fmt.Printf("what even is our config? %+v", cfg)
 			client = ms.NewClient(
 				cfg.MetricStoreAddr,
 				ms.WithViaGRPC(
@@ -41,6 +43,30 @@ var _ = Describe("Metric Store on a CF", func() {
 			Expect(samples[0].Metric["source_id"]).To(Equal("doppler"))
 			Expect(samples[0].Point).ToNot(BeNil())
 		})
+
+		//It("returns results for /api/v1/range_query", func() {
+		//	ctx := context.Background()
+		//	now := time.Now()
+		//	result, err := client.PromQLRange(
+		//		ctx,
+		//		"egress{source_id=\"doppler\"}",
+		//		ms.WithPromQLStart(now.Add(-5*time.Second)),
+		//		ms.WithPromQLEnd(now),
+		//		ms.WithPromQLStep("1s"),
+		//		)
+		//	Expect(err).ToNot(HaveOccurred())
+		//
+		//	series := result.GetMatrix().GetSeries()
+		//	//var m map[string]string
+		//	//for _, s := range series {
+		//	//
+		//	//
+		//	//}
+		//	Expect(len(series)).ToNot(BeZero())
+		//	Expect(samples[0].Metric["__name__"]).To(Equal("egress"))
+		//	Expect(samples[0].Metric["source_id"]).To(Equal("doppler"))
+		//	Expect(samples[0].Point).ToNot(BeNil())
+		//})
 	})
 
 	Context("using HTTP client to traverse the auth proxy", func() {

@@ -110,6 +110,12 @@ func WithPromQLEnd(t time.Time) PromQLOption {
 	}
 }
 
+func WithPromQLMatch(match string) PromQLOption {
+	return func(u *url.URL, q url.Values) {
+		q.Add("match[]", match)
+	}
+}
+
 func formatTimeWithDecimalMillis(t time.Time) string {
 	return fmt.Sprintf("%.3f", float64(t.UnixNano())/1e9)
 }
@@ -194,6 +200,85 @@ func (c *Client) grpcPromQLRange(ctx context.Context, query string, opts []PromQ
 	}
 
 	resp, err := c.grpcClient.RangeQuery(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *Client) PromQLSeries(
+	ctx context.Context,
+	opts ...PromQLOption,
+) (*rpc.PromQL_SeriesQueryResult, error) {
+	if c.grpcClient != nil {
+		return c.grpcPromQLSeries(ctx, opts)
+	}
+
+	u, err := url.Parse(c.addr)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing URL: %s", err)
+	}
+	u.Path = "/api/v1/series"
+	q := u.Query()
+
+	// allow the given options to configure the URL.
+	for _, o := range opts {
+		o(u, q)
+	}
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("error make request: %s", err)
+	}
+	req = req.WithContext(ctx)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing http client: %s", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	var promQLResponse rpc.PromQL_SeriesQueryResult
+	marshaler := &runtime.JSONPb{}
+	if err := marshaler.NewDecoder(resp.Body).Decode(&promQLResponse); err != nil {
+		return nil, fmt.Errorf("error parsing request: %s", err)
+	}
+
+	return &promQLResponse, nil
+}
+
+func (c *Client) grpcPromQLSeries(
+	ctx context.Context,
+	opts []PromQLOption,
+	) (*rpc.PromQL_SeriesQueryResult, error) {
+	u := &url.URL{}
+	q := u.Query()
+	// allow the given options to configure the URL.
+	for _, o := range opts {
+		o(u, q)
+	}
+
+	req := &rpc.PromQL_SeriesQueryRequest{
+	}
+
+	if v, ok := q["start"]; ok {
+		req.Start = v[0]
+	}
+
+	if v, ok := q["end"]; ok {
+		req.End = v[0]
+	}
+
+	if v, ok := q["match"]; ok {
+		req.Match = v
+	}
+
+	resp, err := c.grpcClient.SeriesQuery(ctx, req)
 	if err != nil {
 		return nil, err
 	}
