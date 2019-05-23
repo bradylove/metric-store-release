@@ -1,6 +1,7 @@
 package leanstreams
 
 import (
+	"crypto/tls"
 	"log"
 	"net"
 	"sync"
@@ -16,12 +17,13 @@ type ListenCallback func([]byte) error
 // TCPListener represents the abstraction over a raw TCP socket for reading streaming
 // protocolbuffer data without having to write a ton of boilerplate
 type TCPListener struct {
-	socket          *net.TCPListener
+	socket          net.Listener
 	enableLogging   bool
 	callback        ListenCallback
 	shutdownChannel chan struct{}
 	shutdownGroup   *sync.WaitGroup
 	connConfig      *TCPConnConfig
+	tlsConfig       *tls.Config
 	Address         string
 
 	groupMu sync.Mutex
@@ -43,6 +45,8 @@ type TCPListenerConfig struct {
 	// is your responsibility to handle parsing the incoming message and handling errors
 	// inside the callback
 	Callback ListenCallback
+
+	TLSConfig *tls.Config
 }
 
 // ListenTCP creates a TCPListener, and opens it's local connection to
@@ -57,6 +61,7 @@ func ListenTCP(cfg TCPListenerConfig) (*TCPListener, error) {
 	connCfg := TCPConnConfig{
 		MaxMessageSize: maxMessageSize,
 		Address:        cfg.Address,
+		TLSConfig:      cfg.TLSConfig,
 	}
 
 	btl := &TCPListener{
@@ -65,6 +70,7 @@ func ListenTCP(cfg TCPListenerConfig) (*TCPListener, error) {
 		shutdownChannel: make(chan struct{}),
 		shutdownGroup:   &sync.WaitGroup{},
 		connConfig:      &connCfg,
+		tlsConfig:       cfg.TLSConfig,
 		Address:         "",
 	}
 
@@ -80,7 +86,7 @@ func ListenTCP(cfg TCPListenerConfig) (*TCPListener, error) {
 func (t *TCPListener) blockListen() error {
 	for {
 		// Wait for someone to connect
-		c, err := t.socket.AcceptTCP()
+		c, err := t.socket.Accept()
 
 		if err != nil {
 			if t.enableLogging {
@@ -125,15 +131,19 @@ func (t *TCPListener) openSocket() error {
 	if err != nil {
 		return err
 	}
-	t.socket = receiveSocket
+	conn := tls.NewListener(receiveSocket, t.tlsConfig)
+
+	t.socket = conn
 	t.Address = receiveSocket.Addr().String()
 	return err
 }
 
 func (t *TCPListener) reopenSocket() error {
 	t.blockMu.Lock()
+	defer t.blockMu.Unlock()
 
 	t.groupMu.Lock()
+	// TODO: reevaluate waitgroup things here
 	t.shutdownGroup.Wait()
 	t.groupMu.Unlock()
 
@@ -146,10 +156,10 @@ func (t *TCPListener) reopenSocket() error {
 		return err
 	}
 
-	t.socket = receiveSocket
-	t.shutdownChannel = make(chan struct{})
-	t.blockMu.Unlock()
+	conn := tls.NewListener(receiveSocket, t.tlsConfig)
 
+	t.socket = conn
+	t.shutdownChannel = make(chan struct{})
 	return err
 }
 
@@ -171,8 +181,8 @@ func (t *TCPListener) StartListeningAsync() error {
 	var err error
 	go func() {
 		t.blockMu.Lock()
+		defer t.blockMu.Unlock()
 		err = t.blockListen()
-		t.blockMu.Unlock()
 	}()
 	return err
 }
@@ -217,6 +227,10 @@ func (t *TCPListener) readLoop(conn *TCPConn) {
 		}
 		// We take action on the actual message data - but only up to the amount of bytes read,
 		// since we re-use the cache
+		if msgLen == 0 {
+			continue
+		}
+
 		if err = t.callback(dataBuffer[:msgLen]); err != nil && t.enableLogging {
 			log.Printf("Error in Callback: %s", err.Error())
 			// TODO if it's a protobuffs error, it means we likely had an issue and can't

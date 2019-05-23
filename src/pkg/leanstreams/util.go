@@ -22,3 +22,6 @@ func messageSizeToBitLength(messageSize int) int {
 	header := math.Ceil(math.Floor(math.Log2(bytes)+1)/8.0) + 1
 	return int(header)
 }
+
+// [ 2][oo                                      ]
+
